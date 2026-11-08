@@ -35,6 +35,13 @@ test('parent gross includes both fees and preserves full tuition for recipient',
   const quote=await quoteFees(provider,order);
   assert.equal(quote.amount,5100);assert.equal(quote.chargeTotal,5300);assert.equal(quote.collectionFee,200);assert.equal(quote.payoutFee,100);assert.equal(quote.payoutAmount,5000);assert.equal(quote.payoutTotal,5100);
 });
+test('provider authentication cooldown is respected without repeated token requests',async()=>{
+  let calls=0;
+  const provider=new ClickPesa(config,async()=>{calls++;return {ok:false,status:429,headers:{get:()=>null},json:async()=>({fields:{retryAfterSeconds:600}})};});
+  await assert.rejects(()=>provider.authorize(),e=>e.status===429&&e.retryAfter===600);
+  assert.ok(provider.retryAt>Date.now()+590000);
+  await assert.rejects(()=>provider.authorize(),e=>e.status===429);assert.equal(calls,1);
+});
 test('collection fee is displayed once, separate from API principal',async()=>{
   const provider={config,request:async(path,p)=>payoutQuote(p.amount),preview:async o=>({sender:{accountNumber:o.phone,accountProvider:'AIRTEL MONEY'},activeMethods:[{name:'AIRTEL-MONEY',status:'AVAILABLE',fee:Math.ceil(o.amount*0.01)}]})};
   const q=await quoteFees(provider,order);assert.equal(q.amount,q.payoutTotal);assert.equal(q.chargeTotal,q.amount+q.collectionFee);assert.equal(q.payoutAmount,order.tuition_amount);

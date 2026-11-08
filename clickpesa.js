@@ -29,7 +29,11 @@ class ClickPesa {
     let r;
     try { r = await this.transport.call(globalThis, base + path, {...options, redirect:'manual', signal:AbortSignal.timeout(15000)}); }
     catch { throw Object.assign(Error('ClickPesa haijapatikana. Hakiki hali ya ombi kabla ya kujaribu tena.'), {status:502}); }
-    if (!r.ok) throw Object.assign(Error(r.status === 429 ? 'ClickPesa ina maombi mengi. Subiri kisha hakiki hali.' : 'ClickPesa haijakubali ombi. Hakiki hali au wasiliana na msimamizi.'), {status:r.status === 429 ? 429 : 502, providerStatus:r.status});
+    if (!r.ok) {
+      let retryAfter=Number(r.headers?.get('Retry-After'));
+      if(r.status===429){try{const failure=await r.json();const seconds=Number(failure.fields?.retryAfterSeconds);if(Number.isFinite(seconds)&&seconds>0)retryAfter=seconds;}catch{}}
+      throw Object.assign(Error(r.status === 429 ? 'ClickPesa ina maombi mengi. Subiri kisha hakiki hali.' : 'ClickPesa haijakubali ombi. Hakiki hali au wasiliana na msimamizi.'), {status:r.status === 429 ? 429 : 502, providerStatus:r.status,retryAfter:Number.isFinite(retryAfter)&&retryAfter>0?Math.min(retryAfter,86400):undefined});
+    }
     try { return await r.json(); } catch { throw Object.assign(Error('Jibu la ClickPesa halijatambulika.'), {status:502}); }
   }
   async authorize() {
@@ -42,7 +46,7 @@ class ClickPesa {
         const r = await this.response('/generate-token', {method:'POST', headers:{'client-id':this.config.CLICKPESA_CLIENT_ID,'api-key':this.config.CLICKPESA_API_KEY,'Content-Type':'application/json'},body:'{}'});
         if (r.success !== true || typeof r.token !== 'string' || !/^Bearer\s+\S+$/i.test(r.token)) throw Error('Uthibitishaji wa ClickPesa haujakamilika.');
         this.token = r.token; this.expires = Date.now() + 59*60000; return this.token;
-      } catch (e) { this.retryAt = Date.now() + 180000; throw e; }
+      } catch (e) { this.retryAt = Date.now() + (e.retryAfter||180)*1000; throw e; }
     })();
     try { return await this.inFlight; } finally { this.inFlight = null; }
   }
