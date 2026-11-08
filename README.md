@@ -2,7 +2,7 @@
 
 The app now stores users, students, attendance, payments, and notifications in PostgreSQL.
 
-ClickPesa collection and automatic Airtel payouts are implemented locally, with both provider fees charged to the parent. They remain disabled until production credentials, recipient details and live fee behavior are verified. See [ClickPesa setup](CLICKPESA.md).
+ClickPesa collection and automatic Airtel payouts are deployed and enabled, with both provider fees charged to the parent. AUTO SIGN uses its own application/key and callbacks. The required payout preview needs sufficient merchant balance; a full live payment/payout remains untested. See [ClickPesa setup](CLICKPESA.md).
 
 ## Deploy on Render
 
