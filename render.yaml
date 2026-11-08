@@ -10,6 +10,22 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
+      - key: CLICKPESA_COLLECTION_ENABLED
+        value: "false"
+      - key: CLICKPESA_PAYOUT_ENABLED
+        value: "false"
+      - key: CLICKPESA_PAYOUT_FEE_MODE
+        value: parent
+      - key: CLICKPESA_CLIENT_ID
+        sync: false
+      - key: CLICKPESA_API_KEY
+        sync: false
+      - key: CLICKPESA_CHECKSUM_KEY
+        sync: false
+      - key: CLICKPESA_RECIPIENT_PHONE
+        sync: false
+      - key: CLICKPESA_RECIPIENT_NAME
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: gaming-manager-db

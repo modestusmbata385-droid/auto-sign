@@ -2,6 +2,8 @@
 
 The app now stores users, students, attendance, payments, and notifications in PostgreSQL.
 
+ClickPesa collection and automatic Airtel payouts are implemented locally, with both provider fees charged to the parent. They remain disabled until production credentials, recipient details and live fee behavior are verified. See [ClickPesa setup](CLICKPESA.md).
+
 ## Deploy on Render
 
 1. Upload this folder to a GitHub repository.
