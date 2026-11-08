@@ -25,6 +25,10 @@ Set these server environment variables securely in Render:
 - `CLICKPESA_PAYOUT_FEE_MODE=parent`.
 - Keep `CLICKPESA_COLLECTION_ENABLED=false` and `CLICKPESA_PAYOUT_ENABLED=false` during configuration; enable both after the deployment, recipient and merchant fee contract are verified.
 
+Activation switches are managed on the Render service (`sync: false`) so future Blueprint syncs preserve the chosen activation state. If absent, the application defaults to disabled.
+
+Production status on 8 November 2026: source commit `bb4cbd0` is live on `auto-sign-ajqd.onrender.com`. The requested recipient phone/name and parent-paid fee mode were saved directly to the existing service in My Workspace, preserving all other variables. Deployment `dep-dbo8r4e417fc73fis2eg` completed successfully. The Environment page confirms that Client ID, API Key and Checksum Key have not yet been configured. Both activation switches remain disabled. Provider credentials and a live transaction remain outstanding; this is not a completed live-payment integration.
+
 The existing Tereza WiFi Site stores these credentials as secrets. Its environment API returns redacted values, so it cannot export them to Render. No Tereza settings or merchant callbacks were modified. Use an appropriate existing application with both Collection and Disbursement permissions, or create an AUTO SIGN application in the same merchant account. Do not replace Tereza or MCHANGO callbacks. Configure this application's PAYMENT RECEIVED callback to `https://<auto-sign-host>/api/clickpesa/webhook` with canonical checksum signing. If sharing an application, preserve its existing callback and add routing at that callback; do not silently overwrite it.
 
 Existing `DATABASE_URL` and `JWT_SECRET` are still required. Startup adds payment tables and columns in the `autosign` schema. The source directory is no longer a public static directory: only browser assets are served.

@@ -11,9 +11,9 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: CLICKPESA_COLLECTION_ENABLED
-        value: "false"
+        sync: false
       - key: CLICKPESA_PAYOUT_ENABLED
-        value: "false"
+        sync: false
       - key: CLICKPESA_PAYOUT_FEE_MODE
         value: parent
       - key: CLICKPESA_CLIENT_ID
