@@ -2,7 +2,7 @@ const express=require('express'),{Pool}=require('pg'),bcrypt=require('bcryptjs')
 function createApplication(db,config=process.env){
 const app=express(),fee=5000,secret=config.JWT_SECRET||'local-secret';
 for(const method of ['get','post']){const register=app[method].bind(app);app[method]=(route,...handlers)=>register(route,...handlers.map(fn=>(req,res,next)=>{try{return Promise.resolve(fn(req,res,next)).catch(next)}catch(e){next(e)}}));}
-app.use(express.json({limit:'8mb'}));for(const file of ['app.js','payments-ui.js','style.css'])app.get('/'+file,(req,res)=>res.sendFile(path.join(__dirname,file)));
+app.use(express.json({limit:'8mb'}));for(const file of ['app.js','payments-ui.js','admin-ui.js','style.css'])app.get('/'+file,(req,res)=>res.sendFile(path.join(__dirname,file)));
 const {ClickPesa}=require('./clickpesa'),{schema:paymentSchema,installPayments}=require('./online-payments');
 const provider=new ClickPesa(config);
 const {schema:payoutSchema,startPayoutWorker}=require('./payouts');
@@ -35,10 +35,11 @@ await client.query('COMMIT');res.json({ok:true,students:students.map(({id,name})
 app.post('/api/claim-student',auth('parent'),async(req,res)=>{let c=String(req.body.code||'').trim().toUpperCase(),s=(await q('SELECT id,name FROM students WHERE access_code=$1',[c]))[0];if(!s)return res.status(404).json({error:'Invalid student code'});await q('INSERT INTO parent_student_access(parent_id,student_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[req.user.id,s.id]);await q('INSERT INTO notifications(parent_id,message) VALUES($1,$2)',[req.user.id,`You now have access to ${s.name}'s tuition account.`]);res.json({ok:true,name:s.name})});
 app.get('/api/parent',auth('parent'),async(req,res)=>{let students=await q(`SELECT s.*,COALESCE(a.days,0)::int days,COALESCE(p.paid,0)::int paid FROM students s JOIN parent_student_access x ON x.student_id=s.id LEFT JOIN(SELECT student_id,COUNT(*) FILTER(WHERE status='present') days FROM student_attendance GROUP BY student_id)a ON a.student_id=s.id LEFT JOIN(SELECT student_id,SUM(amount) paid FROM payments GROUP BY student_id)p ON p.student_id=s.id WHERE x.parent_id=$1 ORDER BY s.id`,[req.user.id]),notes=await q('SELECT message,created_at FROM notifications WHERE parent_id=$1 ORDER BY id DESC LIMIT 10',[req.user.id]),attendance=await q('SELECT a.student_id,a.day FROM student_attendance a JOIN parent_student_access x ON x.student_id=a.student_id WHERE x.parent_id=$1 AND a.status=$2',[req.user.id,'present']);res.json({students:students.map(s=>({...s,total:s.days*fee,balance:s.days*fee-s.paid})),notes,attendance})});
 const paymentService=installPayments({app,db,auth,provider,fee});
+const extras=require('./admin-activities');extras.install({app,db,auth,q,notice,owned,fee});
 app.use('/api',(req,res)=>res.status(404).json({error:'Not found'}));
 app.use((err,req,res,next)=>res.status(500).json({error:'Imeshindikana. Jaribu tena.'}));
 app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
-async function initialize(){await setup();await db.query(paymentSchema);await db.query(payoutSchema);}
+async function initialize(){await setup();await extras.ensureAdmin(db,config);await db.query(extras.schema);await db.query(paymentSchema);await db.query(payoutSchema);}
 return {app,initialize,provider,startWorkers(){
   const payouts=startPayoutWorker(db,provider);
   let busy=false;
